@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     openai_base_url: str = "https://api.openai.com/v1"
     anthropic_base_url: str = "https://api.anthropic.com"
+    # Generic OpenAI-compatible endpoint (Ollama, Groq, LM Studio...).
+    # Keyless endpoints are supported — leave the key empty for local models.
+    openai_compat_base_url: str = "http://localhost:11434/v1"
+    openai_compat_api_key: str | None = None
 
     @property
     def cors_origin_list(self) -> list[str]:

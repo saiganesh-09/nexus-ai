@@ -5,7 +5,7 @@
 | 0 | Repository inspection, architecture plan | Done |
 | 1 | Project foundation: backend scaffold, health check, frontend shell, design system, docs | In progress |
 | 2 | Auth (register/login/JWT), user model, PostgreSQL + Alembic migrations | Done |
-| 3 | Provider layer (OpenAI, Anthropic, compatible), rule-based router, chat service, request persistence, token/cost tracking | Pending |
+| 3 | Provider layer (OpenAI-compatible, Anthropic), rule-based router, chat service, request persistence, token/cost tracking, Playground UI + auth | Done |
 | 4 | Retry/fallback, Redis caching, request history API (search/filter/pagination) | Pending |
 | 5 | Model comparison API, analytics aggregation endpoints | Pending |
 | 6 | Agent + tools (calculator, knowledge, code analysis), evaluation framework + dataset + scorers | Pending |

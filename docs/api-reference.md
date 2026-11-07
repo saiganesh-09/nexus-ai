@@ -28,6 +28,36 @@ Errors use a consistent envelope: `{"error": {"code", "message", "details"}}`.
 | GET | `/requests` | ✓ | Paginated, user-scoped list. Query: `page` (≥1), `page_size` (1–100, default 20), `status`, `provider`, `model`, `request_type`, `q` (prompt/response search), `date_from`, `date_to` → `PaginatedRequests` |
 | GET | `/requests/{id}` | ✓ | Request detail incl. `routing_decision` → `AiRequestDetail` · `404` if not owned/found |
 
+## Chat (Phase 3)
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/chat` | ✓ | Submit a prompt. Body: `prompt` (1–8000 chars), `model` (`"auto"` or `"provider/model_id"` or bare catalog id; default auto), `max_tokens?`, `temperature?` → `ChatResponseOut` with content, token usage, latency, cost, routing explanation · `502 provider_error` on failure (request still recorded) |
+| GET | `/models` | ✓ | Active model catalog with pricing and `provider_configured` flag |
+
+### Routing
+
+`model: "auto"` runs the rule-based classifier (`app/routers/classifier.py`):
+prompt length, code indicators, reasoning keywords and question structure
+produce a 0–1 score → `economy | standard | premium` tier → ordered candidate
+list (`TIER_POLICY`, policy `rule-v1`). The first configured provider is tried;
+on failure, remaining same-tier candidates are attempted (fallback). The
+persisted `RoutingDecision` records score, tier, reason and policy version.
+This is heuristic routing, not a trained model.
+
+### Providers
+
+- `openai-compatible` — any `/chat/completions` endpoint (Ollama default
+  `http://localhost:11434/v1`, or OpenAI via `OPENAI_COMPAT_BASE_URL` +
+  `OPENAI_COMPAT_API_KEY`; keyless endpoints supported).
+- `anthropic` — native Messages API via `ANTHROPIC_API_KEY`.
+
+### Cost & tokens
+
+Token counts come from provider `usage` when reported; otherwise estimated
+(len/4) and flagged via `cost_is_estimate`. Cost = tokens × catalog price
+(USD per 1M, `model_configs.pricing_effective_date`). Local models price at $0.
+
 ## Health
 
 | Method | Path | Auth | Description |

@@ -97,7 +97,9 @@ Phase 3+.
 
 - Phase 1 ✅ foundation — scaffolding, health check, frontend↔backend, design system
 - Phase 2 ✅ data layer — PostgreSQL + Alembic, JWT auth, users, request history API
-- Phase 3 → LLM providers, intelligent router, playground backend
+- Phase 3 ✅ AI core — provider abstraction (OpenAI-compatible + Anthropic), rule-based router with fallback, cost/token tracking, AI Playground + login/register UI
+- Verified locally against Ollama (`llama3.2:3b`) — real responses, usage and routing explanations persisted. Set `OPENAI_API_KEY`/`ANTHROPIC_API_KEY`-equivalent env vars for cloud providers.
+- Phase 4 → Redis caching, retries, comparisons, analytics
 
 ## License
 

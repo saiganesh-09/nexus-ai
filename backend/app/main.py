@@ -24,6 +24,13 @@ async def lifespan(app: FastAPI):
         environment=settings.environment,
         version=__version__,
     )
+    from app.database.session import async_session_factory
+    from app.services.chat import seed_model_catalog
+
+    async with async_session_factory() as session:
+        added = await seed_model_catalog(session)
+        if added:
+            logger.info("model_catalog_seeded", added=added)
     yield
     logger.info("service_stopping")
 

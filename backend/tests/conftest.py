@@ -31,8 +31,10 @@ def _create_tables():
 
 
 @pytest.fixture()
-def client() -> TestClient:
-    return TestClient(create_app())
+def client():
+    # Context manager triggers the app lifespan (catalog seeding, logging).
+    with TestClient(create_app()) as test_client:
+        yield test_client
 
 
 def register_user(client: TestClient, email: str, password: str = "password123", name: str = "Test User") -> dict:
