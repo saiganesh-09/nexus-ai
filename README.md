@@ -28,6 +28,14 @@ docs/       Architecture, database schema, API reference, roadmap, security
 
 ## Quick start
 
+### Database (Docker)
+
+```bash
+docker run -d --name nexus-postgres -e POSTGRES_USER=nexus -e POSTGRES_PASSWORD=nexus \
+  -e POSTGRES_DB=nexus -p 5432:5432 postgres:16-alpine
+docker run -d --name nexus-redis -p 6379:6379 redis:7-alpine
+```
+
 ### Backend
 
 ```bash
@@ -38,7 +46,8 @@ python -m venv .venv
 # macOS/Linux:
 source .venv/bin/activate
 pip install -r requirements.txt
-cp ../.env.example .env   # or run without .env (defaults work for dev)
+cp ../.env.example .env   # adjust DATABASE_URL / ports if needed
+alembic upgrade head     # run migrations
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -61,22 +70,34 @@ App: http://localhost:3000
 | `npm run dev` | frontend | Next.js dev server |
 | `npm run lint` / `npm run build` | frontend | Lint / production build |
 | `uvicorn app.main:app --reload` | backend | API dev server |
-| `pytest` | backend | Test suite |
+| `pytest` | backend | Test suite (SQLite, no external services needed) |
+| `alembic upgrade head` | backend | Apply DB migrations |
 
 ## Environment variables
 
 See `.env.example`. Copy to `backend/.env`. Never commit real keys.
 
+## API
+
+Interactive docs: http://localhost:8000/docs · See [docs/api-reference.md](docs/api-reference.md)
+
+Implemented endpoints (Phase 2): health, register, login, logout, profile
+(get/update), paginated request history with filters. AI endpoints arrive in
+Phase 3+.
+
 ## Documentation
 
 - [docs/architecture.md](docs/architecture.md) — system architecture
+- [docs/database-schema.md](docs/database-schema.md) — relational schema
+- [docs/api-reference.md](docs/api-reference.md) — endpoint reference
 - [docs/development-roadmap.md](docs/development-roadmap.md) — phased plan
-- [docs/security.md](docs/security.md) — security model (in progress)
+- [docs/security.md](docs/security.md) — security model
 
 ## Roadmap
 
-Phase 1 (current): foundation — scaffolding, health check, frontend↔backend
-connectivity, design system shell. See `docs/development-roadmap.md`.
+- Phase 1 ✅ foundation — scaffolding, health check, frontend↔backend, design system
+- Phase 2 ✅ data layer — PostgreSQL + Alembic, JWT auth, users, request history API
+- Phase 3 → LLM providers, intelligent router, playground backend
 
 ## License
 

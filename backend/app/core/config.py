@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://nexus:nexus@localhost:5432/nexus"
     redis_url: str = "redis://localhost:6379/0"
 
-    cors_origins: list[str] = ["http://localhost:3000"]
+    # Comma-separated list, e.g. "http://localhost:3000,https://app.example.com"
+    cors_origins: str = "http://localhost:3000"
     rate_limit_requests: int = 120
     rate_limit_window_seconds: int = 60
     request_timeout_seconds: float = 30.0
@@ -30,6 +31,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     openai_base_url: str = "https://api.openai.com/v1"
     anthropic_base_url: str = "https://api.anthropic.com"
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
 
 @lru_cache
