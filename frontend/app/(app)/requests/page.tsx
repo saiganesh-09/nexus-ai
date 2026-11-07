@@ -47,9 +47,14 @@ export default function RequestsPage() {
 
   useEffect(() => {
     if (!authed) return;
-    const t = setTimeout(() => void load(), 0);
+    const t = setTimeout(() => {
+      const param = new URLSearchParams(window.location.search).get("q");
+      if (param) setQ(param);
+      void load();
+    }, 0);
     return () => clearTimeout(t);
-  }, [authed, load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed]);
 
   async function openDetail(id: string) {
     setDetailLoading(true);

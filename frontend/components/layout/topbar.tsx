@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, LogOut, Menu, Search } from "lucide-react";
+import { LogOut, Menu, Search } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { clearSession, getUser } from "@/lib/auth";
 
@@ -48,20 +48,18 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
         <input
           type="search"
-          placeholder="Search requests, models…"
+          placeholder="Search request history…"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              const q = (e.target as HTMLInputElement).value.trim();
+              router.push(q ? `/requests?q=${encodeURIComponent(q)}` : "/requests");
+            }
+          }}
           className="h-9 w-full rounded-lg border border-border bg-surface pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:border-brand-500/60 focus:outline-none"
         />
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <button
-          type="button"
-          className="relative rounded-lg p-2 text-text-secondary hover:bg-surface-raised hover:text-text-primary"
-          aria-label="Notifications"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-brand-500" />
-        </button>
         <div className="ml-1 flex items-center gap-2.5 rounded-lg border border-border bg-surface px-2.5 py-1.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600/80 text-xs font-semibold text-white">
             {initial}
