@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import cache_get, cache_key, cache_set
 from app.core.errors import NexusError
 from app.models import AiRequest, ModelConfig, RequestLog, RoutingDecision, User
 from app.providers.base import ChatMessage, LLMProviderError
@@ -118,6 +119,19 @@ class ChatService:
         else:
             candidates = choice.candidates or [(choice.provider, choice.model_id)]
 
+        # Cache lookup — user-scoped key; only auto/manual chat (not
+        # comparisons or evals) is cached.
+        cache_hit = False
+        ckey = None
+        if request_type == "chat":
+            ckey = cache_key(
+                str(user.id), choice.provider, choice.model_id, prompt,
+                max_tokens, temperature,
+            )
+            cached = await cache_get(ckey)
+            if cached is not None:
+                cache_hit = True
+
         record = AiRequest(
             user_id=user.id,
             request_type=request_type,
@@ -125,9 +139,34 @@ class ChatService:
             model=choice.model_id,
             prompt=prompt,
             status="pending",
+            cache_hit=cache_hit,
         )
         self.db.add(record)
         await self.db.flush()
+
+        if cache_hit:
+            record.status = "success"
+            record.response_text = cached["content"]
+            record.input_tokens = cached.get("input_tokens")
+            record.output_tokens = cached.get("output_tokens")
+            record.latency_ms = 0
+            record.estimated_cost_usd = 0.0
+            record.cost_is_estimate = False
+            entry = await self._catalog_entry(choice.provider, choice.model_id)
+            self.db.add(RequestLog(
+                request_id=record.id, level="info", event="cache_hit",
+                detail={"provider": choice.provider, "model": choice.model_id},
+            ))
+            await self.db.commit()
+            await self.db.refresh(record)
+
+            class _CachedResponse:
+                content = cached["content"]
+                model = cached.get("model", choice.model_id)
+                input_tokens = cached.get("input_tokens")
+                output_tokens = cached.get("output_tokens")
+
+            return record, _CachedResponse(), entry, choice
 
         if choice.classification is not None:
             self.db.add(
@@ -237,6 +276,13 @@ class ChatService:
 
         record.status = "success"
         record.response_text = response.content
+        if ckey is not None:
+            await cache_set(ckey, {
+                "content": response.content,
+                "model": response.model,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+            })
         record.input_tokens = input_tokens
         record.output_tokens = output_tokens
         record.latency_ms = latency

@@ -1,3 +1,5 @@
+import asyncio
+
 import httpx
 
 from app.core.config import get_settings
@@ -31,6 +33,10 @@ class AnthropicProvider(LLMProvider):
         max_tokens: int | None = None,
         temperature: float | None = None,
     ) -> ProviderResponse:
+        settings = get_settings()
+        self.max_retries = settings.provider_max_retries
+        self.retry_base_delay = settings.retry_base_delay_seconds
+
         system_parts = [m.content for m in messages if m.role == "system"]
         chat_messages = [
             {"role": m.role, "content": m.content}
@@ -47,6 +53,18 @@ class AnthropicProvider(LLMProvider):
         if temperature is not None:
             payload["temperature"] = temperature
 
+        last_exc: LLMProviderError | None = None
+        for attempt in range(self.max_retries + 1):
+            try:
+                return await self._request_once(payload, model)
+            except LLMProviderError as exc:
+                last_exc = exc
+                if not exc.retryable or attempt == self.max_retries:
+                    raise
+                await asyncio.sleep(self.retry_base_delay * (2 ** attempt))
+        raise last_exc  # unreachable
+
+    async def _request_once(self, payload: dict, model: str) -> ProviderResponse:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 resp = await client.post(

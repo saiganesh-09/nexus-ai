@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1 import analytics, auth, chat, compare, evaluations, health, models, requests, routing, users
+from app.api.v1 import analytics, auth, chat, compare, credentials, evaluations, health, models, requests, routing, users
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
@@ -13,3 +13,4 @@ api_router.include_router(routing.router)
 api_router.include_router(analytics.router)
 api_router.include_router(compare.router)
 api_router.include_router(evaluations.router)
+api_router.include_router(credentials.router)

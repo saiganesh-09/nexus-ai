@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
 from app.middleware.correlation import CorrelationIdMiddleware
+from app.middleware.ratelimit import RateLimitMiddleware
 
 logger = get_logger("nexus")
 
@@ -89,6 +90,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.add_middleware(MaxBodySizeMiddleware, max_bytes=settings.max_request_body_bytes)
+    app.add_middleware(RateLimitMiddleware)
 
     app.include_router(api_router, prefix=settings.api_prefix)
     return app

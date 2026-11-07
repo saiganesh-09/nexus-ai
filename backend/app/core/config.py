@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     rate_limit_requests: int = 120
     rate_limit_window_seconds: int = 60
     request_timeout_seconds: float = 30.0
+    provider_max_retries: int = 2
+    retry_base_delay_seconds: float = 0.5
+    cache_ttl_seconds: int = 3600
     max_request_body_bytes: int = 1_000_000
 
     openai_api_key: str | None = None

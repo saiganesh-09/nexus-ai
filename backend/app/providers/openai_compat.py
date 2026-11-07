@@ -1,3 +1,5 @@
+import asyncio
+
 import httpx
 
 from app.core.config import get_settings
@@ -52,6 +54,22 @@ class OpenAICompatibleProvider(LLMProvider):
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
+        settings = get_settings()
+        self.max_retries = settings.provider_max_retries
+        self.retry_base_delay = settings.retry_base_delay_seconds
+
+        last_exc: LLMProviderError | None = None
+        for attempt in range(self.max_retries + 1):
+            try:
+                return await self._request_once(payload, headers, model)
+            except LLMProviderError as exc:
+                last_exc = exc
+                if not exc.retryable or attempt == self.max_retries:
+                    raise
+                await asyncio.sleep(self.retry_base_delay * (2 ** attempt))
+        raise last_exc  # unreachable, satisfies type checkers
+
+    async def _request_once(self, payload: dict, headers: dict, model: str) -> ProviderResponse:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 resp = await client.post(
