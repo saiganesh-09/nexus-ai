@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -38,6 +39,18 @@ class Settings(BaseSettings):
     # Keyless endpoints are supported — leave the key empty for local models.
     openai_compat_base_url: str = "http://localhost:11434/v1"
     openai_compat_api_key: str | None = None
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _normalize_database_url(cls, v: str) -> str:
+        # Managed hosts (Render, Railway...) hand out postgres:// or
+        # postgresql:// URLs; the async engine requires the asyncpg driver.
+        if isinstance(v, str):
+            if v.startswith("postgres://"):
+                v = "postgresql+asyncpg://" + v[len("postgres://"):]
+            elif v.startswith("postgresql://"):
+                v = "postgresql+asyncpg://" + v[len("postgresql://"):]
+        return v
 
     @property
     def cors_origin_list(self) -> list[str]:

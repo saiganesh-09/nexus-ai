@@ -1,0 +1,45 @@
+# Render Blueprint — NEXUS AI backend + Postgres + Redis
+# Deploy: https://dashboard.render.com/blueprints/new?repo=https://github.com/saiganesh-09/nexus-ai
+services:
+  - type: web
+    name: nexus-api
+    runtime: docker
+    rootDir: backend
+    plan: free
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nexus-db
+          property: connectionString
+      - key: REDIS_URL
+        value: redis://${nexus-redis.host}:${nexus-redis.port}
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false  # set to your Vercel frontend URL after deploy
+      - key: OPENAI_COMPAT_BASE_URL
+        sync: false
+      - key: OPENAI_COMPAT_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: REQUEST_TIMEOUT_SECONDS
+        value: "30"
+      - key: CACHE_TTL_SECONDS
+        value: "300"
+
+databases:
+  - name: nexus-db
+    plan: free
+    databaseName: nexus
+    user: nexus
+
+  - type: redis
+    name: nexus-redis
+    plan: free
+    ipAllowList: []  # private network only
+    maxmemoryPolicy: allkeys-lru
