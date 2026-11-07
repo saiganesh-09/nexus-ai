@@ -242,4 +242,59 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ full_name, password }),
     }),
+  evalDataset: () => request<EvalDatasetInfo>("/evaluations/dataset"),
+  startEvalRun: (provider: string, model: string, taskIds?: string[]) =>
+    request<{ id: string; status: string; summary: EvalSummary }>("/evaluations/runs", {
+      method: "POST",
+      body: JSON.stringify({ provider, model, task_ids: taskIds, max_steps: 5 }),
+    }),
+  listEvalRuns: () => request<{ items: EvalRunSummary[]; total: number }>("/evaluations/runs?page_size=50"),
+  getEvalRun: (id: string) => request<EvalRunDetail>(`/evaluations/runs/${id}`),
 };
+
+export interface EvalDatasetInfo {
+  name: string;
+  version: string;
+  task_count: number;
+  categories: string[];
+  tasks: { id: string; category: string; description: string; allowed_tools: string[]; prompt: string }[];
+}
+
+export interface EvalSummary {
+  total_tasks: number;
+  passed_tasks: number;
+  failed_tasks: number;
+  pass_rate: number;
+  avg_score: number;
+  duration_ms: number;
+  by_category: Record<string, { total: number; passed: number }>;
+  scoring: string;
+}
+
+export interface EvalRunSummary {
+  id: string;
+  status: string;
+  agent_config: { provider?: string; model?: string };
+  summary: EvalSummary;
+  created_at: string | null;
+}
+
+export interface EvalRunDetail extends EvalRunSummary {
+  results: {
+    id: string;
+    task_id: string;
+    passed: boolean;
+    score: number;
+    latency_ms: number | null;
+    cost_usd: number | null;
+    details: {
+      category?: string;
+      description?: string;
+      prompt?: string;
+      answer?: string | null;
+      provider_error?: string | null;
+      tools?: { tools_used?: string[]; tool_calls?: number; tool_errors?: number };
+      grader_details?: Record<string, unknown>;
+    };
+  }[];
+}

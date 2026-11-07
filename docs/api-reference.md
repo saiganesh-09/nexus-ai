@@ -38,6 +38,10 @@ Errors use a consistent envelope: `{"error": {"code", "message", "details"}}`.
 | GET | `/analytics/overview?days=N` | ✓ | Aggregates: requests, tokens, est. cost, avg latency, success/cache rates, daily timeseries, model usage — all from `ai_requests` |
 | GET | `/analytics/models?days=N` | ✓ | Per-model requests/tokens/cost/latency/success rate |
 | POST | `/compare` | ✓ | Body: `prompt`, `models` (2–4 explicit `provider/model_id`) → side-by-side `CompareResponseOut`; each attempt persisted as `request_type='comparison'`; per-model failures return as error items, not request failure |
+| GET | `/evaluations/dataset` | ✓ | Dataset metadata + all 25 tasks (id, category, tools, prompt) |
+| POST | `/evaluations/runs` | ✓ | Body: `provider`, `model`, `task_ids?`, `max_steps?` → runs the agent per task, deterministic grading, persists `eval_runs`/`eval_results`. 201 with run id + summary |
+| GET | `/evaluations/runs` | ✓ | Paginated run history with summaries |
+| GET | `/evaluations/runs/{id}` | ✓ | Run detail incl. per-task answer, tool trace, grader details, latency, cost |
 
 ### Routing
 
@@ -54,6 +58,23 @@ decision is persisted in `routing_decisions` and viewable per-request via
 
 Classifier accuracy is heuristic, not measured at production scale — see
 `tests/unit/test_routing_engine.py` for the 24-prompt evaluation matrix.
+
+### Agents & evaluations
+
+**Agent** (`app/agents/agent.py`): prompt-based tool-calling loop, provider-
+agnostic. The model replies `{"tool": name, "args": {...}}` or
+`{"answer": "..."}`; tools execute via `ToolRegistry` with parameter
+validation, bounded steps (`max_steps`, default 5) and full step logging.
+
+**Tools** (`app/agents/tools.py`): `calculator` (AST-whitelisted arithmetic —
+no `eval`), `knowledge_lookup` (static fact base), `code_analysis` (AST:
+LOC/functions/classes/complexity/TODOs/prints). All side-effect free.
+
+**Scoring** (`app/evaluations/scorers.py`): deterministic graders only —
+`contains`, `contains_all`, `contains_any`, `exact`, `regex`. **No LLM judge
+is used**; every pass/fail is reproducible from the stored answer + trace.
+Dataset: 25 tasks (`app/evaluations/dataset.py`), categories
+calculator/knowledge/code_analysis/reasoning.
 
 ### Providers
 
