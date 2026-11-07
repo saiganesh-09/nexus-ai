@@ -34,16 +34,23 @@ Errors use a consistent envelope: `{"error": {"code", "message", "details"}}`.
 |---|---|---|---|
 | POST | `/chat` | ✓ | Submit a prompt. Body: `prompt` (1–8000 chars), `model` (`"auto"` or `"provider/model_id"` or bare catalog id; default auto), `max_tokens?`, `temperature?` → `ChatResponseOut` with content, token usage, latency, cost, routing explanation · `502 provider_error` on failure (request still recorded) |
 | GET | `/models` | ✓ | Active model catalog with pricing and `provider_configured` flag |
+| POST | `/routing/explain` | ✓ | Routing preview WITHOUT calling a provider. Body: `prompt` → `RoutingExplanationOut`: score, tier, signals, selected provider/model, reason, policy version, ordered fallback candidates, decision timestamp |
 
 ### Routing
 
-`model: "auto"` runs the rule-based classifier (`app/routers/classifier.py`):
-prompt length, code indicators, reasoning keywords and question structure
-produce a 0–1 score → `economy | standard | premium` tier → ordered candidate
-list (`TIER_POLICY`, policy `rule-v1`). The first configured provider is tried;
-on failure, remaining same-tier candidates are attempted (fallback). The
-persisted `RoutingDecision` records score, tier, reason and policy version.
-This is heuristic routing, not a trained model.
+`model: "auto"` delegates to `RoutingEngine` (`app/routers/engine.py`), which
+is provider-independent — it receives an `is_configured(provider)` predicate
+and returns a `RoutingOutcome`. The classifier (`app/routers/classifier.py`)
+scores prompts 0–1 from length bands, code indicators, reasoning keywords,
+task verbs, technical/writing domain signals, sentence structure and
+simple-lookup penalties → `economy | standard | premium` → ordered
+`TIER_POLICY` candidates (`rule-v1`). Manual `provider/model_id` selection
+bypasses the engine entirely (`routing: null` in the response). Every
+decision is persisted in `routing_decisions` and viewable per-request via
+`GET /requests/{id}` or previewed via `POST /routing/explain`.
+
+Classifier accuracy is heuristic, not measured at production scale — see
+`tests/unit/test_routing_engine.py` for the 24-prompt evaluation matrix.
 
 ### Providers
 

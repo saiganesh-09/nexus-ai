@@ -64,6 +64,8 @@ def test_chat_persists_request_and_reports_usage(client: TestClient, headers, mo
     assert body["input_tokens"] == 10 and body["output_tokens"] == 5
     assert body["latency_ms"] >= 0
     assert body["id"]
+    # Manual selection bypasses auto-routing entirely.
+    assert body["routing"] is None
 
     # The request must be visible in history.
     history = client.get("/api/v1/requests", headers=headers).json()

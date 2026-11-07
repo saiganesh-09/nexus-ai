@@ -204,13 +204,29 @@ export default function PlaygroundPage() {
                 )}
                 {result.routing && (
                   <div className="rounded-lg border border-border bg-surface-raised px-3 py-2">
-                    <div className="flex items-center gap-2 text-xs">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
                       <Badge variant="brand">auto-routed</Badge>
-                      <span className="text-text-secondary">
-                        complexity {result.routing.complexity_tier} (
-                        {result.routing.complexity_score.toFixed(2)}) · policy{" "}
-                        {result.routing.policy_version}
+                      <Badge variant="default">
+                        {result.routing.complexity_tier} ·{" "}
+                        {result.routing.complexity_score.toFixed(2)}
+                      </Badge>
+                      <span className="font-mono text-[11px] text-text-secondary">
+                        {result.routing.selected_provider}/
+                        {result.routing.selected_model}
                       </span>
+                      <span className="ml-auto text-[10px] text-text-muted">
+                        {new Date(result.routing.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {result.routing.signals.map((s) => (
+                        <span
+                          key={s}
+                          className="rounded border border-border px-1.5 py-0.5 text-[10px] text-text-muted"
+                        >
+                          {s}
+                        </span>
+                      ))}
                     </div>
                     <p className="mt-1.5 text-[11px] leading-relaxed text-text-muted">
                       {result.routing.reason}

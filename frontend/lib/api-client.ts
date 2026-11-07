@@ -16,11 +16,28 @@ export interface ChatResponse {
   routing: {
     complexity_score: number;
     complexity_tier: string;
+    selected_provider: string;
+    selected_model: string;
     reason: string;
     signals: string[];
     policy_version: string;
+    timestamp: string;
   } | null;
   error: string | null;
+}
+
+export interface RoutingExplanation {
+  prompt: string;
+  complexity_score: number;
+  complexity_tier: string;
+  signals: string[];
+  selected_provider: string;
+  selected_model: string;
+  reason: string;
+  policy_version: string;
+  fallback_candidates: { provider: string; model_id: string }[];
+  manual_bypass: boolean;
+  decided_at: string;
 }
 
 export interface ModelInfo {
@@ -100,5 +117,10 @@ export const api = {
     request<ChatResponse>("/chat", {
       method: "POST",
       body: JSON.stringify({ prompt, model: model || "auto" }),
+    }),
+  explainRouting: (prompt: string) =>
+    request<RoutingExplanation>("/routing/explain", {
+      method: "POST",
+      body: JSON.stringify({ prompt }),
     }),
 };

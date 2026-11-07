@@ -26,12 +26,17 @@ async def chat(
     )
     routing = None
     if choice.classification is not None:
+        from datetime import datetime, timezone
+
         routing = RoutingInfo(
             complexity_score=choice.classification.score,
             complexity_tier=choice.classification.tier.value,
+            selected_provider=choice.provider,
+            selected_model=choice.model_id,
             reason=choice.reason,
             signals=choice.classification.signals,
             policy_version="rule-v1",
+            timestamp=datetime.now(timezone.utc).isoformat(),
         )
     return ChatResponseOut(
         id=str(record.id),

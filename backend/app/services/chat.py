@@ -9,11 +9,11 @@ from app.core.errors import NexusError
 from app.models import AiRequest, ModelConfig, RequestLog, RoutingDecision, User
 from app.providers.base import ChatMessage, LLMProviderError
 from app.providers.registry import get_provider
-from app.routers.classifier import ComplexityTier, classify
+from app.routers.classifier import classify
+from app.routers.engine import NoProviderAvailableError, RoutingEngine
 from app.services.catalog import (
     MODEL_SEED,
     POLICY_VERSION,
-    TIER_POLICY,
     estimate_cost_usd,
     seed_timestamp,
 )
@@ -43,6 +43,7 @@ class RouteChoice:
     classification: object = None
     manual: bool = False
     reason: str = ""
+    candidates: list[tuple[str, str]] = None
 
 
 class ChatService:
@@ -83,28 +84,20 @@ class ChatService:
             )
 
         classification = classify(prompt)
-        candidates = TIER_POLICY[classification.tier.value]
-        for provider, model_id in candidates:
-            instance = get_provider(provider)
-            if instance and instance.is_configured():
-                reason = (
-                    f"Rule-based classifier scored {classification.score:.2f} "
-                    f"({classification.tier.value}) from signals "
-                    f"{', '.join(classification.signals) or 'none'}; "
-                    f"policy {POLICY_VERSION} selected {provider}/{model_id} "
-                    f"as the first configured candidate."
-                )
-                return RouteChoice(
-                    provider=provider,
-                    model_id=model_id,
-                    classification=classification,
-                    reason=reason,
-                )
-        raise NexusError(
-            503,
-            "no_provider_available",
-            "No LLM provider is configured. Set OPENAI_COMPAT_BASE_URL/API key "
-            "or ANTHROPIC_API_KEY.",
+        engine = RoutingEngine(
+            lambda name: (inst := get_provider(name)) is not None and inst.is_configured()
+        )
+        try:
+            outcome = engine.decide(prompt)
+        except NoProviderAvailableError as exc:
+            raise NexusError(503, "no_provider_available", str(exc)) from exc
+
+        return RouteChoice(
+            provider=outcome.provider,
+            model_id=outcome.model_id,
+            classification=classification,
+            reason=outcome.reason,
+            candidates=outcome.candidates,
         )
 
     async def complete(
@@ -122,13 +115,7 @@ class ChatService:
         if choice.manual:
             candidates = [(choice.provider, choice.model_id)]
         else:
-            candidates = [
-                (p, m)
-                for p, m in TIER_POLICY[choice.classification.tier.value]
-                if (inst := get_provider(p)) and inst.is_configured()
-            ]
-            if not candidates:
-                candidates = [(choice.provider, choice.model_id)]
+            candidates = choice.candidates or [(choice.provider, choice.model_id)]
 
         record = AiRequest(
             user_id=user.id,

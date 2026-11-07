@@ -13,9 +13,12 @@ class ChatRequestIn(BaseModel):
 class RoutingInfo(BaseModel):
     complexity_score: float
     complexity_tier: str
+    selected_provider: str
+    selected_model: str
     reason: str
     signals: list[str]
     policy_version: str
+    timestamp: str
 
 
 class ChatResponseOut(BaseModel):
