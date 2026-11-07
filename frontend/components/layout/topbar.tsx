@@ -15,7 +15,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const [user, setUser] = useState<{ email?: string; full_name?: string } | null>(null);
 
   useEffect(() => {
-    setUser(getUser());
+    const t = setTimeout(() => setUser(getUser()), 0);
+    return () => clearTimeout(t);
   }, []);
 
   async function handleLogout() {

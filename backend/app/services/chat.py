@@ -107,6 +107,7 @@ class ChatService:
         model_choice: str | None,
         max_tokens: int | None = None,
         temperature: float | None = None,
+        request_type: str = "chat",
     ):
         choice = await self.resolve_model(model_choice, prompt)
 
@@ -119,7 +120,7 @@ class ChatService:
 
         record = AiRequest(
             user_id=user.id,
-            request_type="chat",
+            request_type=request_type,
             provider=choice.provider,
             model=choice.model_id,
             prompt=prompt,

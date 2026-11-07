@@ -1,21 +1,29 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { getToken } from "./auth";
 
-/** Redirects to /login when no session token exists (client-side guard). */
+function subscribe(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener("nexus-auth-change", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("nexus-auth-change", callback);
+  };
+}
+
+const getSnapshot = () => getToken() !== null;
+const getServerSnapshot = () => false;
+
+/** Returns true when a session token exists; redirects to /login otherwise. */
 export function useRequireAuth(): boolean {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const hasToken = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-    } else {
-      setReady(true);
-    }
-  }, [router]);
+    if (!hasToken) router.replace("/login");
+  }, [hasToken, router]);
 
-  return ready;
+  return hasToken;
 }

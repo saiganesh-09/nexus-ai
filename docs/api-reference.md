@@ -35,6 +35,9 @@ Errors use a consistent envelope: `{"error": {"code", "message", "details"}}`.
 | POST | `/chat` | ✓ | Submit a prompt. Body: `prompt` (1–8000 chars), `model` (`"auto"` or `"provider/model_id"` or bare catalog id; default auto), `max_tokens?`, `temperature?` → `ChatResponseOut` with content, token usage, latency, cost, routing explanation · `502 provider_error` on failure (request still recorded) |
 | GET | `/models` | ✓ | Active model catalog with pricing and `provider_configured` flag |
 | POST | `/routing/explain` | ✓ | Routing preview WITHOUT calling a provider. Body: `prompt` → `RoutingExplanationOut`: score, tier, signals, selected provider/model, reason, policy version, ordered fallback candidates, decision timestamp |
+| GET | `/analytics/overview?days=N` | ✓ | Aggregates: requests, tokens, est. cost, avg latency, success/cache rates, daily timeseries, model usage — all from `ai_requests` |
+| GET | `/analytics/models?days=N` | ✓ | Per-model requests/tokens/cost/latency/success rate |
+| POST | `/compare` | ✓ | Body: `prompt`, `models` (2–4 explicit `provider/model_id`) → side-by-side `CompareResponseOut`; each attempt persisted as `request_type='comparison'`; per-model failures return as error items, not request failure |
 
 ### Routing
 

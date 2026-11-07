@@ -25,4 +25,5 @@ export function getUser(): { email?: string; full_name?: string } | null {
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  window.dispatchEvent(new Event("nexus-auth-change"));
 }
